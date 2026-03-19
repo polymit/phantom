@@ -1,0 +1,43 @@
+[workspace]
+members = [
+    "crates/phantom-net",
+    "crates/phantom-core",
+    "crates/phantom-js",
+    "crates/phantom-serializer",
+    "crates/phantom-session",
+    "crates/phantom-storage",
+    "crates/phantom-mcp",
+    "crates/phantom-anti-detect",
+]
+resolver = "2"
+
+[workspace.dependencies]
+html5ever = "0.38"
+cssparser = "*"
+taffy = "0.9"
+indextree = "*"
+rquickjs = { version = "0.11", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
+axum = "*"
+thiserror = "*"
+tracing = "*"
+tracing-subscriber = { version = "*", features = ["env-filter", "json"] }
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+uuid = { version = "1", features = ["v4"] }
+parking_lot = "*"
+rayon = "*"
+rquest = "2.2.1"
+cookie_store = "*"
+rusqlite = { version = "*", features = ["bundled"] }
+sled = "*"
+backoff = { version = "*", features = ["tokio"] }
+zstd = "*"
+sha2 = "*"
+crossbeam = "*"
+lru = "*"
+futures = "*"
+async_trait = "*"
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+clap = { version = "4.4", features = ["derive", "env"] }

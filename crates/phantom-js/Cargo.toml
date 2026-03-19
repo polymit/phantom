@@ -1,0 +1,19 @@
+[package]
+name = "phantom-js"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+phantom-core = { path = "../phantom-core" }
+phantom-net = { path = "../phantom-net" }
+phantom-serializer = { path = "../phantom-serializer" }
+rquickjs = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+uuid = { workspace = true }
+parking_lot = { workspace = true }
+indextree = { workspace = true }
+url = "2"

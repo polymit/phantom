@@ -1,0 +1,20 @@
+[package]
+name = "phantom-storage"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+phantom-core = { path = "../phantom-core" }
+thiserror.workspace = true
+uuid.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sled.workspace = true
+cookie_store.workspace = true
+rusqlite.workspace = true
+tar = "*"
+zstd.workspace = true
+sha2.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+hex = "0.4.3"

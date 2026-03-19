@@ -1,0 +1,19 @@
+[package]
+name = "phantom-serializer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+phantom-core = { path = "../phantom-core" }
+parking_lot = { workspace = true }
+rayon = { workspace = true }
+thiserror = { workspace = true }
+indextree = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "serializer_bench"
+harness = false

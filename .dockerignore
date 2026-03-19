@@ -1,0 +1,36 @@
+# Build artifacts (large, never needed in image)
+target/
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Environment files (secrets must never be in image)
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation (not needed at runtime)
+*.md
+docs/
+
+# CI / GitHub
+.github/
+
+# Test and bench files (not needed at runtime)
+tests/
+benches/
+
+# Log files
+*.log
+
+# Agent files
+.agent/

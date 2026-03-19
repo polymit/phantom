@@ -1,0 +1,67 @@
+# Phantom Engine v0.1.0 — Docker Compose
+# Services: phantom-engine + prometheus (metrics) + grafana (dashboards)
+
+services:
+  phantom-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: phantom-engine:v0.1.0
+    container_name: phantom-engine
+    ports:
+      - "${PHANTOM_PORT:-8080}:8080"
+      - "${PHANTOM_METRICS_PORT:-9091}:9091"
+    environment:
+      PHANTOM_API_KEYS: "${PHANTOM_API_KEYS:-phantom-secret-change-me}"
+      PHANTOM_MAX_SESSIONS: "${PHANTOM_MAX_SESSIONS:-1000}"
+      PHANTOM_JSON_LOGS: "true"
+      RUST_LOG: "${RUST_LOG:-info}"
+    volumes:
+      - phantom-storage:/app/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: phantom-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: phantom-grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD:-phantom}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+volumes:
+  phantom-storage:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local

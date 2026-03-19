@@ -1,0 +1,18 @@
+# Prometheus scrape configuration for Phantom Engine
+# Scrapes the /metrics endpoint exposed by the MCP server
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: "phantom-engine"
+    static_configs:
+      - targets: ["phantom-engine:9091"]
+    metrics_path: "/metrics"
+    scheme: "http"
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

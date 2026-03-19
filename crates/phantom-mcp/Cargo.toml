@@ -1,0 +1,30 @@
+[package]
+name = "phantom-mcp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+phantom-core = { path = "../phantom-core" }
+phantom-js = { path = "../phantom-js" }
+phantom-session = { path = "../phantom-session" }
+tokio = { workspace = true, features = ["rt-multi-thread", "sync", "macros", "time"] }
+axum = { workspace = true, features = ["macros"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+metrics = { workspace = true }
+backoff = { workspace = true, features = ["tokio"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+parking_lot = { workspace = true }
+metrics-exporter-prometheus = { workspace = true }
+clap = { workspace = true }
+tracing-subscriber = { workspace = true }
+phantom-storage = { path = "../phantom-storage" }
+url = "2"
+indextree = { workspace = true }
+cookie_store = { workspace = true }
+phantom-serializer = { path = "../phantom-serializer" }
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
