@@ -278,7 +278,7 @@ r = call("browser_close_tab", {"tabId": tab_id}, session_id)
 | | `browser_press_key` | 🔧 | Press a named key (Enter, Tab, Escape …) |
 | | `browser_wait_for_selector` | 🔧 | Poll until selector appears in DOM |
 | Perception | `browser_get_scene_graph` | ✅ | Return CCT scene graph for current session DOM |
-| | `browser_snapshot` | 📋 v0.2 | Visual representation of current page |
+| | `browser_snapshot` | 📋 v0.3 | Visual representation of current page |
 | | `browser_evaluate` | ✅ | Execute JavaScript, return JSON result |
 | Tabs | `browser_new_tab` | ✅ | Open new tab, optionally navigate to URL |
 | | `browser_switch_tab` | ✅ | Switch active tab context |
