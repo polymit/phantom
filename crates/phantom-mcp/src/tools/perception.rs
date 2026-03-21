@@ -6,10 +6,10 @@ use phantom_serializer;
 use serde_json::{json, Value};
 use std::sync::Arc;
 
-use phantom_js::quickjs::runtime::QuickJsRuntime;
 use phantom_js::quickjs::runtime::JsError as QuickJsError;
+use phantom_js::quickjs::runtime::QuickJsRuntime;
 
-use crate::errors::{BrowserError, JsError, InternalError};
+use crate::errors::{BrowserError, InternalError, JsError};
 use crate::server::McpSession;
 
 pub async fn browser_get_scene_graph(
@@ -79,9 +79,8 @@ pub async fn browser_evaluate(
         })?
         .to_string();
 
-    let runtime = QuickJsRuntime::new().map_err(|e| {
-        BrowserError::JavaScript(JsError::Evaluation(e.to_string()))
-    })?;
+    let runtime = QuickJsRuntime::new()
+        .map_err(|e| BrowserError::JavaScript(JsError::Evaluation(e.to_string())))?;
 
     let result = runtime
         .execute(&script, "browser_evaluate")

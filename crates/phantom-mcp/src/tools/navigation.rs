@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::errors::{BrowserError, NavigationError, InternalError};
+use crate::errors::{BrowserError, InternalError, NavigationError};
 use crate::server::McpSession;
 
 /// Navigate to a URL with exponential backoff on network failures.
@@ -93,16 +93,12 @@ pub async fn browser_go_back(
     })?;
 
     let mut pipeline = phantom_core::pipeline::PagePipeline::new()
-        .map_err(|e| {
-            BrowserError::Internal(InternalError::ChannelSend(e.to_string()))
-        })?;
+        .map_err(|e| BrowserError::Internal(InternalError::ChannelSend(e.to_string())))?;
 
     let processed_page = pipeline
         .process_url(&prev_url, 1920.0, 1080.0)
         .await
-        .map_err(|e| {
-            BrowserError::Internal(InternalError::ChannelSend(e.to_string()))
-        })?;
+        .map_err(|e| BrowserError::Internal(InternalError::ChannelSend(e.to_string())))?;
 
     session.active_url = Some(processed_page.url.clone());
     session.dom = Some(processed_page.dom);
@@ -142,16 +138,12 @@ pub async fn browser_refresh(
     })?;
 
     let mut pipeline = phantom_core::pipeline::PagePipeline::new()
-        .map_err(|e| {
-            BrowserError::Internal(InternalError::ChannelSend(e.to_string()))
-        })?;
+        .map_err(|e| BrowserError::Internal(InternalError::ChannelSend(e.to_string())))?;
 
     let processed_page = pipeline
         .process_url(&url, 1920.0, 1080.0)
         .await
-        .map_err(|e| {
-            BrowserError::Internal(InternalError::ChannelSend(e.to_string()))
-        })?;
+        .map_err(|e| BrowserError::Internal(InternalError::ChannelSend(e.to_string())))?;
 
     session.active_url = Some(processed_page.url.clone());
     session.dom = Some(processed_page.dom);
