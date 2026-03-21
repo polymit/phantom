@@ -138,7 +138,19 @@ The 6x token reduction over JSON is not an estimate — it is the result of a de
 
 ## Quick Start
 
-### Docker
+### One-line install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/polymit/phantom/main/install.sh | sh
+```
+
+### Docker pull
+
+```bash
+docker pull polymit/phantom:latest
+```
+
+### Docker run
 
 ```bash
 docker run -d \
@@ -255,7 +267,7 @@ r = call("browser_close_tab", {"tabId": tab_id}, session_id)
 
 ## MCP Tools Reference
 
-| Category | Tool | v0.2 Status | Description |
+| Category | Tool | Status | Description |
 | --- | --- | --- | --- |
 | Navigation | `browser_navigate` | ✅ | Fetch URL, parse DOM, compute layout, store in session |
 | | `browser_go_back` | ✅ | Navigate to previous URL in history |
@@ -349,7 +361,7 @@ cargo run --bin phantom-mcp -- \
 
 ## Roadmap
 
-### v0.2 — Interaction complete
+### v0.3 — Interaction complete
 - [ ] Wire `browser_click`, `browser_type`, `browser_press_key` — DOM event dispatch
 - [ ] Wire `browser_go_forward` — forward history stack
 - [ ] Wire `browser_session_snapshot` and `browser_session_clone` — session persistence
@@ -359,7 +371,7 @@ cargo run --bin phantom-mcp -- \
 - [ ] Per-tab DOM isolation
 - [ ] Session cap enforcement
 
-### v0.3 — Reliability and real-world sites
+### v0.4 — Reliability and real-world sites
 - [ ] CSS dimension parsing (width, height, margin, padding from stylesheets)
 - [ ] `<script>` tag extraction and execution in page pipeline
 - [ ] `browser_wait_for_selector` with live DOM polling
