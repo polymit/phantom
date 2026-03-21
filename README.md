@@ -1,12 +1,26 @@
-# Phantom Engine
+<p align="center">
+  <img src="assets/polymit_logo.png" alt="Polymit" width="120" />
+</p>
 
-> Purpose-built browser engine for AI agents — zero rendering, full MCP protocol, 1000+ concurrent sessions.
+<h1 align="center">Phantom Engine</h1>
 
-[![Docker Hub](https://img.shields.io/docker/pulls/polymit/phantom?style=flat-square)](https://hub.docker.com/r/polymit/phantom)
-[![Docker Image Size](https://img.shields.io/docker/image-size/polymit/phantom/latest?style=flat-square)](https://hub.docker.com/r/polymit/phantom)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
-[![Rust](https://img.shields.io/badge/built%20with-Rust-orange?style=flat-square)](https://www.rust-lang.org/)
-[![Version](https://img.shields.io/badge/version-0.2.0-green?style=flat-square)](https://github.com/polymit/phantom/releases)
+<p align="center">
+  <em>Purpose-built browser engine for AI agents — zero rendering, full MCP protocol, 1000+ concurrent sessions.</em>
+</p>
+
+<p align="center">
+  <a href="https://hub.docker.com/r/polymit/phantom"><img src="https://img.shields.io/docker/pulls/polymit/phantom?style=flat-square" alt="Docker Pulls" /></a>
+  <a href="https://hub.docker.com/r/polymit/phantom"><img src="https://img.shields.io/docker/image-size/polymit/phantom/latest?style=flat-square" alt="Docker Image Size" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License" /></a>
+  <a href="https://github.com/polymit/phantom/releases"><img src="https://img.shields.io/badge/version-0.2.0-green?style=flat-square" alt="Version" /></a>
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/built%20with-Rust-CE412B?style=flat-square&logo=rust&logoColor=white" alt="Built with Rust" /></a>
+</p>
+
+<p align="center">
+  <img src="https://www.rust-lang.org/logos/rust-logo-blk.svg" alt="Rust" width="48" />
+</p>
+
+---
 
 Phantom Engine is not a Chrome wrapper. It is not Playwright with a different API.
 It is a native Rust browser engine designed from the ground up for one purpose:
@@ -437,6 +451,8 @@ phantom/
 ├── docker-compose.yml          # Engine + Prometheus + Grafana
 ├── prometheus.yml              # Prometheus scrape config
 ├── .env.example                # All environment variables
+├── assets/
+│   └── polymit_logo.png        # Polymit logo (used in README header)
 ├── crates/
 │   ├── phantom-net/            # Layer 1: Network (rquest + BoringSSL)
 │   ├── phantom-core/           # Layer 2: HTML, CSS, DOM tree, layout
@@ -488,4 +504,7 @@ Apache License 2.0 — see [LICENSE](LICENSE).
 
 ---
 
-Phantom Engine is a product of [Polymit](https://github.com/polymit).
+<p align="center">
+  <img src="assets/polymit_logo.png" alt="Polymit" width="80" /><br/><br/>
+  Phantom Engine is a product of <a href="https://github.com/polymit">Polymit</a>
+</p>
