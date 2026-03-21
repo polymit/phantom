@@ -1,142 +1,191 @@
 # Phantom Engine
 
-> Purpose-built browser engine for AI agents — zero rendering, full MCP protocol, 1000+ concurrent sessions.
+> A native Rust browser engine purpose-built for AI agents. No Chrome. No Playwright. No pixels.
 
-[![Docker Hub](https://img.shields.io/docker/pulls/polymit/phantom?style=flat-square)](https://hub.docker.com/r/polymit/phantom)
-[![Docker Image Size](https://img.shields.io/docker/image-size/polymit/phantom/latest?style=flat-square)](https://hub.docker.com/r/polymit/phantom)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.0-green?style=flat-square)](https://github.com/polymit/phantom/releases)
-[![Built with Rust](https://img.shields.io/badge/built%20with-Rust-CE412B?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/built%20with-Rust-orange?style=flat-square)](https://www.rust-lang.org/)
+[![Status](https://img.shields.io/badge/status-early%20alpha-yellow?style=flat-square)]()
 
 ---
 
-Phantom Engine is not a Chrome wrapper. It is not Playwright with a different API.
-It is a native Rust browser engine designed from the ground up for one purpose:
-giving AI agents a fast, token-efficient, anti-detection-resistant browser.
-
-```
- ██████╗ ██╗  ██╗ █████╗ ███╗   ██╗████████╗ ██████╗ ███╗   ███╗
- ██╔══██╗██║  ██║██╔══██╗████╗  ██║╚══██╔══╝██╔═══██╗████╗ ████║
- ██████╔╝███████║███████║██╔██╗ ██║   ██║   ██║   ██║██╔████╔██║
- ██╔═══╝ ██╔══██║██╔══██║██║╚██╗██║   ██║   ██║   ██║██║╚██╔╝██║
- ██║     ██║  ██║██║  ██║██║ ╚████║   ██║   ╚██████╔╝██║ ╚═╝ ██║
- ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝
-```
+> **Early Alpha.** Phantom's core pipeline — fetch, parse, layout, and CCT serialization — is implemented and working. Several interaction tools and advanced session features are actively being completed. See the [Status](#status) section for an honest breakdown before integrating.
 
 ---
 
-## Why Phantom Engine
+## What Phantom Is
 
-| Problem | Phantom's Answer |
+Phantom is a browser engine written from scratch in Rust, designed exclusively for AI agents operating over the Model Context Protocol (MCP). It does not wrap Chrome. It does not use Playwright or Puppeteer. It implements its own HTML parsing pipeline, CSS cascade engine, layout engine, and DOM serializer — then exposes the result to agents as a structured, token-efficient scene graph.
+
+The core thesis: AI agents do not need pixels. They need structure. Every byte spent rendering a frame, every millisecond waiting for a GPU flush, and every token wasted on verbose JSON is waste that Phantom eliminates by design.
+
+---
+
+## Why Phantom
+
+Every existing headless browser tool for AI agents is Chrome with a different API. Chrome brings with it 300ms startup times, gigabytes of RAM per session, a detectable TLS fingerprint, and a rendering pipeline that exists entirely to serve human eyes. Phantom discards all of that.
+
+| Problem with Chrome-based tools | Phantom's approach |
 | --- | --- |
-| Chrome costs 300ms per session startup | QuickJS sessions start in **< 1ms** |
-| Raw DOM JSON uses ~121 tokens/node | CCT uses **~20 tokens/node** — 6× more efficient |
-| Headless Chrome has a detectable TLS fingerprint | `rquest` + BoringSSL produces **JA4-spoofed handshakes** |
-| Chrome cannot run 1000 sessions on one machine | Phantom runs **1000+ concurrent sessions** with < 1GB RAM |
+| ~300ms cold session startup | QuickJS isolates start in milliseconds; isolate pool pre-warms on boot |
+| Raw DOM as JSON uses ~121 tokens per node | CCT format uses ~20 tokens per node — a 6x reduction |
+| Headless Chrome TLS fingerprint is detectable | `rquest` + BoringSSL with Chrome130 impersonation |
+| Headless Chrome is identifiable via `navigator.webdriver` | JS shims mask all standard detection vectors before page scripts run |
+| Hundreds of MB per Chrome instance | Phantom sessions share a single Rust process with per-task memory isolation |
 
 ---
 
-## Table of Contents
+## Status
 
-- [Install](#install)
-- [Quick Start](#quick-start)
-- [Connect an Agent](#connect-an-agent-mcp-config)
-- [First Agent Session](#first-agent-session)
-- [CCT Format](#cct-format)
-- [Performance](#performance)
-- [Architecture](#architecture)
-- [MCP Tools Reference](#mcp-tools-reference)
-- [Configuration](#configuration)
-- [Development](#development)
-- [Roadmap](#roadmap)
+Phantom is early alpha. The table below reflects what the code actually does today, not what we are building toward.
+
+| Component | Status | Notes |
+| --- | --- | --- |
+| HTML parsing (`html5ever`) | ✅ Working | Full spec-compliant parsing |
+| CSS cascade engine | ✅ Working | Handles `display`, `visibility`, `opacity`, `position`, `z-index`, `pointer-events`; inline styles and `<style>` tags |
+| Taffy layout engine | ✅ Working | Block, flex, grid; reads HTML `width`/`height` attributes |
+| CCT serialization | ✅ Working | Full 8-stage pipeline; ~20 tokens/node |
+| Network layer (`rquest` + BoringSSL) | ✅ Working | Chrome130 TLS impersonation; redirect following |
+| `browser_navigate` | ✅ Working | Fetches, parses, layouts, stores DOM in session |
+| `browser_go_back` | ✅ Working | Re-navigates to previous URL in history stack |
+| `browser_refresh` | ✅ Working | Re-fetches current URL |
+| `browser_get_scene_graph` | ✅ Working | Returns real CCT output from live session DOM |
+| `browser_evaluate` | ✅ Working | Executes JS in QuickJS isolate; returns JSON result |
+| `browser_new_tab` / `browser_list_tabs` / `browser_close_tab` | ✅ Working | Tab state tracked per session |
+| `browser_switch_tab` | ✅ Working | Switches active tab context |
+| `browser_get_cookies` / `browser_set_cookie` / `browser_clear_cookies` | ✅ Working | Per-session cookie jar |
+| MCP server (JSON-RPC 2.0) | ✅ Working | Axum + Tokio; session management; Prometheus metrics |
+| API key authentication | ✅ Working | `X-API-Key` header; configurable via env |
+| Circuit breaker | ✅ Working | Opens after 5 failures; resets after 30s |
+| Anti-detect persona pool | ✅ Working | Deterministic per-session fingerprints; navigator shims generated |
+| Canvas noise shims | ✅ Working | Per-session 1-bit canvas noise to defeat fingerprinting |
+| Session broker + scheduler | ✅ Working | Priority-based session queue |
+| Snapshot storage (`phantom-storage`) | ✅ Working | zstd-compressed tar with SHA256 checksums |
+| `browser_go_forward` | 🔧 In progress | Placeholder; forward history stack not yet wired |
+| `browser_click` / `browser_type` / `browser_press_key` | 🔧 In progress | Event sequences defined; DOM dispatch wiring in progress |
+| `browser_wait_for_selector` | 🔧 In progress | Polls session DOM; live MutationObserver not yet connected |
+| `browser_session_snapshot` | 🔧 In progress | Storage layer complete; tool wiring in progress |
+| `browser_session_clone` | 🔧 In progress | Session broker clone logic complete; tool wiring in progress |
+| `browser_subscribe_dom` / SSE stream | 🔧 In progress | SSE infrastructure planned; endpoint returns 501 today |
+| `browser_snapshot` (screenshot) | 📋 Planned v0.2 | No render pipeline by design; planned as structured fallback |
+| Cookie passthrough on fetch | 🔧 In progress | Cookie jar populated; HTTP header injection in progress |
+| Anti-detect shim injection at navigate | 🔧 In progress | Shims generated; injection into navigation pipeline in progress |
+| V8 tier (Tier 2 JS) | 📋 Planned | Currently delegates to QuickJS; rusty_v8 integration planned |
+| Session max cap enforcement | 🔧 In progress | CLI flag parsed; enforcement logic in progress |
+| Per-tab DOM isolation | 🔧 In progress | Tab metadata tracked; DOM swap on switch in progress |
 
 ---
 
-## Install
+## Architecture
 
-### Option 1 — One-line install (Linux / macOS)
+Phantom is an 8-crate Rust workspace organized in 5 layers plus one cross-cutting concern.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/polymit/phantom/main/install.sh | sh
+```
+Layer 5 — MCP Server        phantom-mcp          Axum + Tokio, JSON-RPC 2.0, auth, metrics
+Layer 4 — Session Broker    phantom-session       Isolate pool, circuit breaker, priority scheduler
+           Storage           phantom-storage       SQLite IndexedDB, sled KV, zstd snapshots
+Layer 3 — Serializer        phantom-serializer    CCT encoder, 8-stage pipeline, buffer pooling
+Layer 2 — Core Engine       phantom-core          html5ever, indextree arena DOM, taffy layout, CSS
+           JS Engine         phantom-js            QuickJS runtime, DOM bindings, browser shims
+Layer 1 — Network           phantom-net           rquest + BoringSSL, Chrome130 impersonation
+Cross    — Anti-Detection   phantom-anti-detect   Persona pool, JS fingerprint shims, canvas noise
 ```
 
-### Option 2 — Docker (recommended for production)
+### Design decisions
 
-```bash
-docker pull polymit/phantom:latest
+**No rendering pipeline.** Ever. No GPU, no pixels, no skia, no wgpu. Phantom will never render a frame. Agents do not have eyes and every byte spent on rendering is waste.
+
+**CCT over JSON.** The CCT (Compact Context Text) format encodes a full DOM node in a single pipe-delimited line. ~20 tokens per node versus ~121 for JSON. This is not a rounding choice — it is the central design constraint that everything else is built around.
+
+**rquest over reqwest.** The `rquest` crate provides BoringSSL bindings and a `Chrome130` impersonation profile. This produces TLS handshakes that are indistinguishable from a real Chrome 130 browser at the JA4 fingerprint level.
+
+**One JS isolate per task.** Every session gets a fresh QuickJS runtime. When the task ends, the entire isolate is dropped. No state leaks between sessions, no memory accumulates.
+
+**Two-tier JS engine.** QuickJS handles the majority of pages — static HTML, forms, simple scripts. V8 handles SPAs. The V8 tier is currently implemented as a QuickJS delegation while `rusty_v8` bindings are stabilized.
+
+---
+
+## CCT Format
+
+CCT is Phantom's native scene graph format. Each visible DOM node becomes one pipe-delimited line:
+
+```
+id | tag | role | x,y,w,h | flags | text | aria | rel | parent | depth
 ```
 
-### Option 3 — Build from source
+Real output from navigating `example.com`:
 
-**Prerequisites:** Rust 1.80+, `cmake`, `clang`, `pkg-config`, `libssl-dev`
-
-```bash
-# 1. Install system dependencies (Debian/Ubuntu)
-sudo apt-get install -y pkg-config libssl-dev cmake clang
-
-# 2. Install Rust (if not already installed)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source "$HOME/.cargo/env"
-
-# 3. Clone and build
-git clone https://github.com/polymit/phantom.git
-cd phantom
-cargo build --release --workspace
-
-# 4. Run
-cargo run --release --bin phantom-mcp -- \
-  --port 8080 \
-  --api-keys your-secret-key
+```
+n_0|div|main|0,0,1280,720|b,v,1.0,a|Main|-|-|root|0
+n_1|lnk|lnk|356,288,292,18|b,v,1.0,a|More information...|More information...|c|n_0|1
 ```
 
-> **Note on build time:** The first build compiles BoringSSL via `cmake` and takes 5–10 minutes. Subsequent incremental builds are fast. If you hit a `cmake` not found error, install it with `sudo apt-get install cmake` (Linux) or `brew install cmake` (macOS).
+| Field | Description |
+| --- | --- |
+| `id` | Stable node identifier within session |
+| `tag` | Abbreviated HTML tag (`div`, `lnk`, `btn`, `inp` …) |
+| `role` | ARIA role |
+| `x,y,w,h` | Bounding box in pixels |
+| `flags` | Display, visibility, opacity, pointer-events |
+| `text` | Inner text content, truncated at 64 characters |
+| `aria` | Accessible label; `-` if absent |
+| `rel` | Tree relationship hint |
+| `parent` | Parent node ID |
+| `depth` | Tree depth from document root |
+
+The 6x token reduction over JSON is not an estimate — it is the result of a design that encodes only the 9 fields an agent actually needs to navigate a page, and nothing else.
 
 ---
 
 ## Quick Start
 
-### Run with Docker
+### Docker
 
 ```bash
-# Pull and run v0.2.0
 docker run -d \
   -p 8080:8080 \
   -e PHANTOM_API_KEYS=your-secret-key \
   polymit/phantom:v0.2.0
 
-# Verify it's running
 curl http://localhost:8080/health
 # {"status":"ok","version":"0.2.0","circuit_breaker":"Closed"}
 ```
 
-### Full stack with monitoring (Prometheus + Grafana)
+### Full stack with Prometheus and Grafana
 
 ```bash
-# Clone and configure
 git clone https://github.com/polymit/phantom.git
 cd phantom
 cp .env.example .env
-# Edit .env and set PHANTOM_API_KEYS=your-secret-key
+# Edit .env — set PHANTOM_API_KEYS at minimum
 
-# Launch everything
 docker compose up -d
+
+# MCP endpoint:  http://localhost:8080/mcp
+# Prometheus:    http://localhost:9090
+# Grafana:       http://localhost:3000  (admin / phantom)
 ```
 
-| Service | URL | Default credentials |
-| --- | --- | --- |
-| MCP server | http://localhost:8080 | — |
-| Prometheus | http://localhost:9090 | — |
-| Grafana | http://localhost:3000 | `admin` / `phantom` |
+### Build from source
 
-> **Tip:** Always set `PHANTOM_API_KEYS` before running in any environment accessible from a network. If the key is unset, the server starts without authentication and logs a warning.
+**Prerequisites:** Rust 1.80+, `cmake`, `clang`, `pkg-config`, `libssl-dev`
+
+```bash
+sudo apt-get install -y pkg-config libssl-dev cmake clang
+
+git clone https://github.com/polymit/phantom.git
+cd phantom
+cargo build --release --workspace
+
+cargo run --release --bin phantom-mcp -- \
+  --port 8080 \
+  --api-keys your-secret-key
+```
 
 ---
 
-## Connect an Agent (MCP Config)
+## Connect an Agent
 
-### Claude Desktop / Claude Code
-
-Add to your MCP configuration file:
+Add Phantom to your MCP configuration:
 
 ```json
 {
@@ -149,46 +198,11 @@ Add to your MCP configuration file:
 }
 ```
 
-### Run the container as an inline MCP command
-
-```json
-{
-  "mcpServers": {
-    "phantom": {
-      "command": "docker",
-      "args": [
-        "run", "--rm",
-        "-p", "8080:8080",
-        "-e", "PHANTOM_API_KEYS=your-key",
-        "polymit/phantom:v0.2.0"
-      ],
-      "headers": {
-        "X-API-Key": "your-key"
-      }
-    }
-  }
-}
-```
-
-### Authentication
-
-All endpoints except `/health` and `/metrics` require an `X-API-Key` header. Pass multiple keys as a comma-separated list:
-
-```bash
--e PHANTOM_API_KEYS=key-one,key-two,key-three
-```
-
-A missing or invalid key returns `401 Unauthorized`:
-
-```json
-{ "error": { "code": "unauthorized", "message": "Valid X-API-Key header is required" } }
-```
-
 ---
 
-## First Agent Session
+## Basic Usage
 
-Every tool call is a JSON-RPC 2.0 `POST` to `/mcp`. The first call to `browser_navigate` creates a new session and returns a `session_id`. Pass that ID in every subsequent call to maintain state.
+What works today — navigate a page and read the scene graph:
 
 ```python
 import requests
@@ -207,282 +221,164 @@ def call(tool, args, session_id=None):
         body["params"]["session_id"] = session_id
     return requests.post(BASE, json=body, headers=HEADERS).json()
 
-# 1. Navigate — creates a new session automatically
+# Navigate — returns session_id and final URL
 r = call("browser_navigate", {"url": "https://example.com"})
 session_id = r["result"]["session_id"]
 
-# 2. Read the page as a CCT scene graph (~20 tokens/node)
+# Read the CCT scene graph
 r = call("browser_get_scene_graph", {"format": "cct"}, session_id)
 print(r["result"]["scene_graph"])
 # n_0|div|main|0,0,1280,720|b,v,1.0,a|Main|-|-|root|0
-# n_1|lnk|lnk|356,288,292,18|b,v,1.0,a|More information...|...|c|n_0|1
+# n_1|lnk|lnk|356,288,292,18|b,v,1.0,a|More information...|More information...|c|n_0|1
 
-# 3. Click a link by CSS selector
-call("browser_click", {"selector": "a"}, session_id)
-
-# 4. Type into an input field
-call("browser_type", {"selector": "input[name='q']", "text": "phantom engine"}, session_id)
-
-# 5. Evaluate JavaScript
+# Execute JavaScript in the page context
 r = call("browser_evaluate", {"script": "document.title"}, session_id)
-print(r["result"]["result"])  # → "Example Domain"
+print(r["result"]["result"])
+# "Example Domain"
+
+# Go back
+r = call("browser_go_back", {}, session_id)
+
+# Cookie management
+r = call("browser_get_cookies", {}, session_id)
+r = call("browser_set_cookie", {"name": "session", "value": "abc123"}, session_id)
+
+# Tab management
+r = call("browser_new_tab", {"url": "https://example.org"}, session_id)
+tab_id = r["result"]["tabId"]
+r = call("browser_list_tabs", {}, session_id)
+r = call("browser_switch_tab", {"tabId": tab_id}, session_id)
+r = call("browser_close_tab", {"tabId": tab_id}, session_id)
 ```
-
-> **Session lifecycle:** Sessions are scoped to their `session_id`. Each session holds its own DOM, cookie jar, tab list, and navigation history. Sessions are never shared between callers.
-
----
-
-## CCT Format
-
-CCT (Compact Context Text) is Phantom's native output format — designed specifically to reduce the tokens an LLM consumes when reading page structure.
-
-Each visible DOM node is a single pipe-delimited line:
-
-```
-id | tag | role | x,y,w,h | display,visibility,opacity,pointer | accessible_name | visible_text | events | parent | flags
-```
-
-### Example output
-
-```
-n_0|div|main|0,0,1280,720|b,v,1.0,a|Main|-|-|root|0
-n_1|lnk|lnk|356,288,292,18|b,v,1.0,a|More information...|More information...|c|n_0|1
-n_2|btn|btn|600,400,120,40|b,v,1.0,a|Submit|-|c|n_0|0
-```
-
-### Field reference
-
-| Field | Values | Description |
-| --- | --- | --- |
-| `id` | `n_0`, `n_1` … | Stable node identifier. Pinned across refreshes via `data-agent-id` or `data-testid` if present. |
-| `tag` | `div`, `lnk`, `btn`, `inpt`, `frm`, `sel`, `canv`, `ifrm`, `span` | Abbreviated HTML tag |
-| `role` | ARIA role string | `btn`, `lnk`, `ipt`, `nav`, `main`, `none` |
-| `x,y,w,h` | integers | Bounding box in pixels at 1920×1080 viewport |
-| `display` | `b` `i` `f` `g` `n` | block / inline / flex / grid / none |
-| `visibility` | `v` `h` | visible / hidden |
-| `opacity` | `0.0`–`1.0` | Computed opacity |
-| `pointer` | `a` `n` | pointer-events active / none |
-| `accessible_name` | string or `-` | `aria-label` → `aria-labelledby` → `title` → `alt` → `placeholder` |
-| `visible_text` | string or `-` | Direct text content, truncated at 100 chars |
-| `events` | `c`, `f`, `-` | Inferred events: `c`=click, `f`=focus |
-| `parent` | id or `root` | Parent node ID |
-| `flags` | integer bitmask | `2`=iframe, `4`=canvas, `8`=svg |
-
-Optional `s:disabled,checked,selected,expanded,required` state field appended when any state bit is set.
-
-**~20 tokens/node vs ~121 for raw JSON DOM — 6× reduction.** This directly cuts LLM costs and latency for every page an agent reads.
-
----
-
-## Performance
-
-| Metric | Phantom Engine | Chrome Headless | Lightpanda |
-| --- | --- | --- | --- |
-| Session startup | < 1ms (QJS) / < 50ms (V8) | ~300ms | ~50ms |
-| Tokens per node | ~20 (CCT) | ~121 (JSON) | ~63 (JSON) |
-| 1000 concurrent sessions | ✅ < 1 GB RAM | ❌ ~150 GB | ~4 GB |
-| TLS fingerprint spoofing | ✅ JA4 + BoringSSL | ❌ Detectable | ❌ Detectable |
-| CCT serialization (1000 nodes) | < 5ms | N/A | N/A |
-
----
-
-## Architecture
-
-Phantom Engine is a 5-layer Rust workspace with a cross-cutting anti-detection module:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Layer 5 — MCP Server                phantom-mcp                │
-│  Axum + Tokio · JSON-RPC 2.0 · 20 tools · Auth · Prometheus    │
-├───────────────────────────┬─────────────────────────────────────┤
-│  Layer 4 — Session Broker │  Storage                            │
-│  phantom-session          │  phantom-storage                    │
-│  Isolate pool · Circuit   │  SQLite IndexedDB · sled KV         │
-│  breaker · Scheduler      │  Per-session isolation · Snapshots  │
-├───────────────────────────┴─────────────────────────────────────┤
-│  Layer 3 — Serializer                phantom-serializer         │
-│  CCT encoder · 2-pass traversal · Rayon parallel extraction     │
-│  Mutation coalescing · Delta streaming                          │
-├───────────────────────────┬─────────────────────────────────────┤
-│  Layer 2 — Core Engine    │  JS Engine                          │
-│  phantom-core             │  phantom-js                         │
-│  html5ever · indextree    │  QuickJS (Tier 1, < 1ms)           │
-│  taffy layout · CSS       │  V8 (Tier 2, SPAs)                  │
-│  cascade                  │  DOM bindings · Timer shims         │
-├───────────────────────────┴─────────────────────────────────────┤
-│  Layer 1 — Network                   phantom-net                │
-│  rquest + BoringSSL · Chrome130 TLS impersonation · JA4 spoof  │
-├─────────────────────────────────────────────────────────────────┤
-│  Cross-cutting — Anti-Detection      phantom-anti-detect        │
-│  Persona pool · Deterministic fingerprints · Canvas noise       │
-│  Navigator shims · screen/hardware spoofing                     │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Key design decisions
-
-- **No rendering pipeline — ever.** No wgpu, no Skia, no pixel buffers. Agents do not have eyeballs.
-- **CCT output.** ~20 tokens/node. 6× more efficient than JSON DOM.
-- **rquest over reqwest.** BoringSSL for JA4 TLS fingerprint spoofing. Impersonates Chrome 130 at the handshake level.
-- **Two-tier JS.** QuickJS for ~80% of pages (forms, static content). V8 for SPAs (React/Vue/Angular). One runtime per task, burned down after use.
-- **Deterministic anti-detection.** Each session UUID seeds its own RNG, producing a consistent Chrome 130 persona across its lifetime. Spoofs `navigator`, `screen`, canvas entropy, hardware concurrency, and device memory.
-- **Per-task memory model.** Every session's DOM and JS isolate are fully dropped on destroy. No cross-session state leakage.
-- **Persistence-first navigation.** Full history stack with `browser_go_back` and `browser_refresh`. Per-session cookie isolation via `cookie_store`.
 
 ---
 
 ## MCP Tools Reference
 
-### ✅ Implemented and working
+| Category | Tool | v0.2 Status | Description |
+| --- | --- | --- | --- |
+| Navigation | `browser_navigate` | ✅ | Fetch URL, parse DOM, compute layout, store in session |
+| | `browser_go_back` | ✅ | Navigate to previous URL in history |
+| | `browser_go_forward` | 🔧 | Navigate forward in history |
+| | `browser_refresh` | ✅ | Re-fetch current URL |
+| Interaction | `browser_click` | 🔧 | Click element by CSS selector; dispatches mouse event sequence |
+| | `browser_type` | 🔧 | Type text into element with per-character key events |
+| | `browser_press_key` | 🔧 | Press a named key (Enter, Tab, Escape …) |
+| | `browser_wait_for_selector` | 🔧 | Poll until selector appears in DOM |
+| Perception | `browser_get_scene_graph` | ✅ | Return CCT scene graph for current session DOM |
+| | `browser_snapshot` | 📋 v0.2 | Visual representation of current page |
+| | `browser_evaluate` | ✅ | Execute JavaScript, return JSON result |
+| Tabs | `browser_new_tab` | ✅ | Open new tab, optionally navigate to URL |
+| | `browser_switch_tab` | ✅ | Switch active tab context |
+| | `browser_list_tabs` | ✅ | List all open tabs with URL and title |
+| | `browser_close_tab` | ✅ | Close tab; manages fallback to remaining tabs |
+| Storage | `browser_get_cookies` | ✅ | Return all cookies in session jar |
+| | `browser_set_cookie` | ✅ | Set a cookie for current URL scope |
+| | `browser_clear_cookies` | ✅ | Clear entire session cookie jar |
+| Session | `browser_subscribe_dom` | 🔧 | Stream CCT deltas via SSE |
+| | `browser_session_snapshot` | 🔧 | Persist full session state to disk |
+| | `browser_session_clone` | 🔧 | Fork session with copied DOM and cookie state |
 
-| Category | Tool | Description |
-| --- | --- | --- |
-| **Navigation** | `browser_navigate` | Fetch URL, parse HTML, compute layout. Exponential backoff on network errors. |
-| | `browser_go_back` | Pop history stack and reload previous URL. |
-| | `browser_refresh` | Reload the current active URL. |
-| **Interaction** | `browser_click` | Resolve selector → coordinates, dispatch full mouse event sequence with delays. |
-| | `browser_type` | Per-character keydown/keypress/input/keyup (~80ms/char). |
-| | `browser_press_key` | Dispatch a single key event by name (`Enter`, `Tab`, `Escape`, …). |
-| | `browser_wait_for_selector` | Poll DOM up to a configurable timeout (default 30s). |
-| **Perception** | `browser_get_scene_graph` | Serialize DOM + layout to CCT format. |
-| | `browser_evaluate` | Execute JavaScript in a fresh QuickJS isolate, return result. |
-| **Tabs** | `browser_new_tab` | Create a new tab in the session. |
-| | `browser_switch_tab` | Activate a tab by `tabId`. |
-| | `browser_list_tabs` | Return all open tabs with URL and title. |
-| | `browser_close_tab` | Close a tab; auto-creates a blank tab if the last one is closed. |
-| **Storage** | `browser_get_cookies` | List all cookies in the session's isolated cookie jar. |
-| | `browser_set_cookie` | Parse and store a cookie scoped to the active URL. |
-| | `browser_clear_cookies` | Wipe the session's cookie jar. |
-
-### 🚧 Partial / stub — coming in v0.2+
-
-| Tool | Status | Notes |
-| --- | --- | --- |
-| `browser_go_forward` | Stub | Returns `{ success: true }` without navigating. History forward not yet tracked. |
-| `browser_snapshot` | Stub | Returns a 1×1 transparent PNG placeholder. Full screenshot rendering is on the roadmap. |
-| `browser_subscribe_dom` | Stub | Returns `{ stream_established: true }` but the `/mcp/stream` SSE endpoint returns `501`. Delta streaming is not yet active. |
-| `browser_session_snapshot` | Partial | Generates a `snapshot_id` UUID but does not persist DOM to disk. |
-| `browser_session_clone` | Partial | Returns a new `session_id` but does not fork via V8 snapshot. |
-
-> Cookie integration in `browser_navigate` is present in the session model but not yet plumbed into the `PagePipeline` fetch. Cookies set via `browser_set_cookie` are stored per-session but are not forwarded as request headers on the next navigation.
+✅ Working — 🔧 In progress — 📋 Planned
 
 ---
 
 ## Configuration
 
-All configuration via environment variables or CLI flags:
-
 | Variable | Flag | Default | Description |
 | --- | --- | --- | --- |
-| `PHANTOM_PORT` | `--port` | `8080` | MCP / HTTP server port |
+| `PHANTOM_PORT` | `--port` | `8080` | MCP server port |
 | `PHANTOM_METRICS_PORT` | `--metrics-port` | `9091` | Prometheus metrics port |
 | `PHANTOM_MAX_SESSIONS` | `--max-sessions` | `1000` | Maximum concurrent sessions |
-| `PHANTOM_API_KEYS` | `--api-keys` | *(unset)* | Comma-separated API keys. Unset = no auth (dev only). |
-| `RUST_LOG` | `--log-level` | `info` | Log level: `error` `warn` `info` `debug` `trace` |
-| `PHANTOM_JSON_LOGS` | `--json-logs` | `false` | Emit structured JSON logs (for log aggregators) |
+| `PHANTOM_API_KEYS` | `--api-keys` | *(unset — server unprotected)* | Comma-separated API keys |
+| `RUST_LOG` | `--log-level` | `info` | Log level: error, warn, info, debug, trace |
+| `PHANTOM_JSON_LOGS` | `--json-logs` | `false` | Emit structured JSON logs |
 
-Copy `.env.example` to `.env` and set at minimum `PHANTOM_API_KEYS` before running in any non-local environment.
+Copy `.env.example` to `.env` before running. If `PHANTOM_API_KEYS` is unset, the server logs a warning and runs unauthenticated.
+
+---
+
+## Project Structure
+
+```
+phantom/
+├── Cargo.toml                    # Workspace root
+├── Dockerfile                    # Multi-stage build (builder → bookworm-slim)
+├── docker-compose.yml            # Engine + Prometheus + Grafana
+├── prometheus.yml                # Prometheus scrape config
+├── .env.example                  # All environment variables with defaults
+└── crates/
+    ├── phantom-net/              # Layer 1: rquest + BoringSSL network client
+    ├── phantom-core/             # Layer 2: HTML parser, CSS cascade, DOM, layout
+    ├── phantom-js/               # Layer 2: QuickJS runtime, DOM bindings, shims
+    ├── phantom-serializer/       # Layer 3: CCT encoder, 8-stage pipeline
+    ├── phantom-session/          # Layer 4: Session broker, isolate pool, scheduler
+    ├── phantom-storage/          # Layer 4: SQLite IndexedDB, sled KV, snapshots
+    ├── phantom-mcp/              # Layer 5: MCP server, tool dispatch, auth, metrics
+    └── phantom-anti-detect/      # Cross-cutting: persona pool, JS shims, canvas noise
+```
 
 ---
 
 ## Development
 
-### Prerequisites
-
-- Rust 1.80+ — `rustup update stable`
-- `cmake`, `clang`, `pkg-config`, `libssl-dev`
-
 ```bash
-sudo apt-get install -y pkg-config libssl-dev cmake clang
-```
-
-### Build and test
-
-```bash
-# Build all crates
+# Build
 cargo build --workspace
 
-# Run all tests
+# Test
 cargo test --workspace -- --nocapture
 
-# Run the 1000-session scale test
-cargo test --package phantom-mcp test_1000_concurrent_sessions_scale -- --nocapture
-
-# Lint (zero warnings enforced)
+# Lint (zero warnings policy)
 cargo clippy --workspace -- -D warnings
 
 # Format
 cargo fmt --workspace
-```
 
-### Run locally
+# Benchmark CCT serializer
+cargo bench --package phantom-serializer
 
-```bash
-# Development mode (no auth, debug logs)
+# Run locally with debug logging
 cargo run --bin phantom-mcp -- \
   --port 8080 \
-  --api-keys my-dev-key \
+  --api-keys dev-key \
   --log-level debug
-
-# Production mode (JSON structured logs)
-cargo run --bin phantom-mcp -- \
-  --api-keys my-prod-key \
-  --json-logs
-```
-
-### Project layout
-
-```
-phantom/
-├── Cargo.toml                  # Workspace root
-├── Dockerfile                  # Multi-stage build (Rust builder → bookworm-slim)
-├── docker-compose.yml          # Engine + Prometheus + Grafana
-├── prometheus.yml              # Prometheus scrape config
-├── .env.example                # All environment variables
-├── assets/
-│   └── polymit_logo.png        # Polymit logo (used in README header)
-├── crates/
-│   ├── phantom-net/            # Layer 1: Network (rquest + BoringSSL)
-│   ├── phantom-core/           # Layer 2: HTML, CSS, DOM tree, layout
-│   ├── phantom-js/             # Layer 2: QuickJS + V8 JS engines
-│   ├── phantom-serializer/     # Layer 3: CCT encoder + delta
-│   ├── phantom-session/        # Layer 4: Session broker, pool, scheduler
-│   ├── phantom-storage/        # Layer 4: Storage isolation + IndexedDB
-│   ├── phantom-mcp/            # Layer 5: MCP server (20 tools)
-│   └── phantom-anti-detect/    # Cross-cutting: Persona pool + JS shims
-└── .github/workflows/ci.yml    # CI: build + clippy + test + docker
 ```
 
 ---
 
 ## Roadmap
 
-### v0.2 (current)
-- [x] Core navigation, interaction, perception, tabs, storage tools
-- [x] CCT serialization with 2-pass traversal
-- [x] Anti-detection persona pool
-- [x] Per-session cookie isolation
-- [ ] Cookie forwarding in `PagePipeline` fetch
-- [ ] `browser_go_forward` — history forward navigation
-- [ ] `browser_snapshot` — real screenshot output
-- [ ] `browser_subscribe_dom` — live SSE delta streaming
-- [ ] `browser_session_snapshot` / `browser_session_clone` — full persistence
-- [ ] Python + TypeScript SDK wrappers
-- [ ] `browser_fill_form` convenience tool
+### v0.2 — Interaction complete
+- [ ] Wire `browser_click`, `browser_type`, `browser_press_key` — DOM event dispatch
+- [ ] Wire `browser_go_forward` — forward history stack
+- [ ] Wire `browser_session_snapshot` and `browser_session_clone` — session persistence
+- [ ] SSE stream for `browser_subscribe_dom`
+- [ ] Cookie passthrough on HTTP fetch
+- [ ] Anti-detect shim injection in navigation pipeline
+- [ ] Per-tab DOM isolation
+- [ ] Session cap enforcement
 
-### v0.3
-- [ ] CCT binary encoding (further token reduction)
+### v0.3 — Reliability and real-world sites
+- [ ] CSS dimension parsing (width, height, margin, padding from stylesheets)
+- [ ] `<script>` tag extraction and execution in page pipeline
+- [ ] `browser_wait_for_selector` with live DOM polling
+- [ ] `tools/list` MCP endpoint for agent discovery
+- [ ] Python and TypeScript SDK wrappers
+
+### v1.0 — Production
+- [ ] Real V8 tier via rusty_v8 for SPA support
+- [ ] Verified performance benchmarks against claimed numbers
+- [ ] `browser_snapshot` as structured CCT fallback
 - [ ] Cloud-hosted managed sessions
-- [ ] Verified benchmark suite with CI-gated performance gates
-
-### v1.0
-- [ ] APEX: fully managed agent browser platform
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Issues and PRs welcome.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Issues, bug reports, and pull requests are welcome.
+
+If you find a gap between what this README describes as working and what the code actually does, please open an issue. Honesty about current state is a project value.
 
 ---
 
@@ -492,6 +388,4 @@ Apache License 2.0 — see [LICENSE](LICENSE).
 
 ---
 
-<p align="center">
-  Phantom Engine is a product of <a href="https://github.com/polymit">Polymit</a>
-</p>
+Phantom Engine is built by [Polymit](https://github.com/polymit).
