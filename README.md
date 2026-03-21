@@ -26,113 +26,11 @@ Every existing headless browser tool for AI agents is Chrome with a different AP
 
 | Problem with Chrome-based tools | Phantom's approach |
 | --- | --- |
-| ~300ms cold session startup | QuickJS isolates start in milliseconds; isolate pool pre-warms on boot |
+| ~300ms cold session startup | QuickJS isolates start in milliseconds; pre-warming planned for v0.3 |
 | Raw DOM as JSON uses ~121 tokens per node | CCT format uses ~20 tokens per node — a 6x reduction |
 | Headless Chrome TLS fingerprint is detectable | `rquest` + BoringSSL with Chrome130 impersonation |
 | Headless Chrome is identifiable via `navigator.webdriver` | JS shims mask all standard detection vectors before page scripts run |
 | Hundreds of MB per Chrome instance | Phantom sessions share a single Rust process with per-task memory isolation |
-
----
-
-## Status
-
-Phantom is early alpha. The table below reflects what the code actually does today, not what we are building toward.
-
-| Component | Status | Notes |
-| --- | --- | --- |
-| HTML parsing (`html5ever`) | ✅ Working | Full spec-compliant parsing |
-| CSS cascade engine | ✅ Working | Handles `display`, `visibility`, `opacity`, `position`, `z-index`, `pointer-events`; inline styles and `<style>` tags |
-| Taffy layout engine | ✅ Working | Block, flex, grid; reads HTML `width`/`height` attributes |
-| CCT serialization | ✅ Working | Full 8-stage pipeline; ~20 tokens/node |
-| Network layer (`rquest` + BoringSSL) | ✅ Working | Chrome130 TLS impersonation; redirect following |
-| `browser_navigate` | ✅ Working | Fetches, parses, layouts, stores DOM in session |
-| `browser_go_back` | ✅ Working | Re-navigates to previous URL in history stack |
-| `browser_refresh` | ✅ Working | Re-fetches current URL |
-| `browser_get_scene_graph` | ✅ Working | Returns real CCT output from live session DOM |
-| `browser_evaluate` | ✅ Working | Executes JS in QuickJS isolate; returns JSON result |
-| `browser_new_tab` / `browser_list_tabs` / `browser_close_tab` | ✅ Working | Tab state tracked per session |
-| `browser_switch_tab` | ✅ Working | Switches active tab context |
-| `browser_get_cookies` / `browser_set_cookie` / `browser_clear_cookies` | ✅ Working | Per-session cookie jar |
-| MCP server (JSON-RPC 2.0) | ✅ Working | Axum + Tokio; session management; Prometheus metrics |
-| API key authentication | ✅ Working | `X-API-Key` header; configurable via env |
-| Circuit breaker | ✅ Working | Opens after 5 failures; resets after 30s |
-| Anti-detect persona pool | ✅ Working | Deterministic per-session fingerprints; navigator shims generated |
-| Canvas noise shims | ✅ Working | Per-session 1-bit canvas noise to defeat fingerprinting |
-| Session broker + scheduler | ✅ Working | Priority-based session queue |
-| Snapshot storage (`phantom-storage`) | ✅ Working | zstd-compressed tar with SHA256 checksums |
-| `browser_go_forward` | 🔧 In progress | Placeholder; forward history stack not yet wired |
-| `browser_click` / `browser_type` / `browser_press_key` | 🔧 In progress | Event sequences defined; DOM dispatch wiring in progress |
-| `browser_wait_for_selector` | 🔧 In progress | Polls session DOM; live MutationObserver not yet connected |
-| `browser_session_snapshot` | 🔧 In progress | Storage layer complete; tool wiring in progress |
-| `browser_session_clone` | 🔧 In progress | Session broker clone logic complete; tool wiring in progress |
-| `browser_subscribe_dom` / SSE stream | 🔧 In progress | SSE infrastructure planned; endpoint returns 501 today |
-| `browser_snapshot` (screenshot) | 📋 Planned v0.2 | No render pipeline by design; planned as structured fallback |
-| Cookie passthrough on fetch | 🔧 In progress | Cookie jar populated; HTTP header injection in progress |
-| Anti-detect shim injection at navigate | 🔧 In progress | Shims generated; injection into navigation pipeline in progress |
-| V8 tier (Tier 2 JS) | 📋 Planned | Currently delegates to QuickJS; rusty_v8 integration planned |
-| Session max cap enforcement | 🔧 In progress | CLI flag parsed; enforcement logic in progress |
-| Per-tab DOM isolation | 🔧 In progress | Tab metadata tracked; DOM swap on switch in progress |
-
----
-
-## Architecture
-
-Phantom is an 8-crate Rust workspace organized in 5 layers plus one cross-cutting concern.
-
-```
-Layer 5 — MCP Server        phantom-mcp          Axum + Tokio, JSON-RPC 2.0, auth, metrics
-Layer 4 — Session Broker    phantom-session       Isolate pool, circuit breaker, priority scheduler
-           Storage           phantom-storage       SQLite IndexedDB, sled KV, zstd snapshots
-Layer 3 — Serializer        phantom-serializer    CCT encoder, 8-stage pipeline, buffer pooling
-Layer 2 — Core Engine       phantom-core          html5ever, indextree arena DOM, taffy layout, CSS
-           JS Engine         phantom-js            QuickJS runtime, DOM bindings, browser shims
-Layer 1 — Network           phantom-net           rquest + BoringSSL, Chrome130 impersonation
-Cross    — Anti-Detection   phantom-anti-detect   Persona pool, JS fingerprint shims, canvas noise
-```
-
-### Design decisions
-
-**No rendering pipeline.** Ever. No GPU, no pixels, no skia, no wgpu. Phantom will never render a frame. Agents do not have eyes and every byte spent on rendering is waste.
-
-**CCT over JSON.** The CCT (Compact Context Text) format encodes a full DOM node in a single pipe-delimited line. ~20 tokens per node versus ~121 for JSON. This is not a rounding choice — it is the central design constraint that everything else is built around.
-
-**rquest over reqwest.** The `rquest` crate provides BoringSSL bindings and a `Chrome130` impersonation profile. This produces TLS handshakes that are indistinguishable from a real Chrome 130 browser at the JA4 fingerprint level.
-
-**One JS isolate per task.** Every session gets a fresh QuickJS runtime. When the task ends, the entire isolate is dropped. No state leaks between sessions, no memory accumulates.
-
-**Two-tier JS engine.** QuickJS handles the majority of pages — static HTML, forms, simple scripts. V8 handles SPAs. The V8 tier is currently implemented as a QuickJS delegation while `rusty_v8` bindings are stabilized.
-
----
-
-## CCT Format
-
-CCT is Phantom's native scene graph format. Each visible DOM node becomes one pipe-delimited line:
-
-```
-id | tag | role | x,y,w,h | flags | text | aria | rel | parent | depth
-```
-
-Real output from navigating `example.com`:
-
-```
-n_0|div|main|0,0,1280,720|b,v,1.0,a|Main|-|-|root|0
-n_1|lnk|lnk|356,288,292,18|b,v,1.0,a|More information...|More information...|c|n_0|1
-```
-
-| Field | Description |
-| --- | --- |
-| `id` | Stable node identifier within session |
-| `tag` | Abbreviated HTML tag (`div`, `lnk`, `btn`, `inp` …) |
-| `role` | ARIA role |
-| `x,y,w,h` | Bounding box in pixels |
-| `flags` | Display, visibility, opacity, pointer-events |
-| `text` | Inner text content, truncated at 64 characters |
-| `aria` | Accessible label; `-` if absent |
-| `rel` | Tree relationship hint |
-| `parent` | Parent node ID |
-| `depth` | Tree depth from document root |
-
-The 6x token reduction over JSON is not an estimate — it is the result of a design that encodes only the 9 fields an agent actually needs to navigate a page, and nothing else.
 
 ---
 
@@ -262,6 +160,108 @@ r = call("browser_list_tabs", {}, session_id)
 r = call("browser_switch_tab", {"tabId": tab_id}, session_id)
 r = call("browser_close_tab", {"tabId": tab_id}, session_id)
 ```
+
+---
+
+## Status
+
+Phantom is early alpha. The table below reflects what the code actually does today, not what we are building toward.
+
+| Component | Status | Notes |
+| --- | --- | --- |
+| HTML parsing (`html5ever`) | ✅ Working | Full spec-compliant parsing |
+| CSS cascade engine | ✅ Working | Handles `display`, `visibility`, `opacity`, `position`, `z-index`, `pointer-events`; inline styles and `<style>` tags |
+| Taffy layout engine | ✅ Working | Block, flex, grid; reads HTML `width`/`height` attributes |
+| CCT serialization | ✅ Working | Full 8-stage pipeline; ~20 tokens/node |
+| Network layer (`rquest` + BoringSSL) | ✅ Working | Chrome130 TLS impersonation; redirect following |
+| `browser_navigate` | ✅ Working | Fetches, parses, layouts, stores DOM in session |
+| `browser_go_back` | ✅ Working | Re-navigates to previous URL in history stack |
+| `browser_refresh` | ✅ Working | Re-fetches current URL |
+| `browser_get_scene_graph` | ✅ Working | Returns real CCT output from live session DOM |
+| `browser_evaluate` | ✅ Working | Executes JS in QuickJS isolate; returns JSON result |
+| `browser_new_tab` / `browser_list_tabs` / `browser_close_tab` | ✅ Working | Tab state tracked per session |
+| `browser_switch_tab` | ✅ Working | Switches active tab context |
+| `browser_get_cookies` / `browser_set_cookie` / `browser_clear_cookies` | ✅ Working | Per-session cookie jar |
+| MCP server (JSON-RPC 2.0) | ✅ Working | Axum + Tokio; session management; Prometheus metrics |
+| API key authentication | ✅ Working | `X-API-Key` header; configurable via env |
+| Circuit breaker | ✅ Working | Opens after 5 failures; resets after 30s |
+| Anti-detect persona pool | ✅ Working | Deterministic per-session fingerprints; navigator shims generated |
+| Canvas noise shims | ✅ Working | Per-session 1-bit canvas noise to defeat fingerprinting |
+| Session broker + scheduler | ✅ Working | Priority-based session queue |
+| Snapshot storage (`phantom-storage`) | ✅ Working | zstd-compressed tar with SHA256 checksums |
+| `browser_go_forward` | 🔧 In progress | Placeholder; forward history stack not yet wired |
+| `browser_click` / `browser_type` / `browser_press_key` | 🔧 In progress | Event sequences defined; DOM dispatch wiring in progress |
+| `browser_wait_for_selector` | 🔧 In progress | Polls session DOM; live MutationObserver not yet connected |
+| `browser_session_snapshot` | 🔧 In progress | Storage layer complete; tool wiring in progress |
+| `browser_session_clone` | 🔧 In progress | Session broker clone logic complete; tool wiring in progress |
+| `browser_subscribe_dom` / SSE stream | 🔧 In progress | SSE infrastructure planned; endpoint returns 501 today |
+| `browser_snapshot` (screenshot) | 📋 Planned v0.3 | No render pipeline by design; planned as structured fallback |
+| Cookie passthrough on fetch | 🔧 In progress | Cookie jar populated; HTTP header injection in progress |
+| Anti-detect shim injection at navigate | 🔧 In progress | Shims generated; injection into navigation pipeline in progress |
+| V8 tier (Tier 2 JS) | 📋 Planned | Currently delegates to QuickJS; rusty_v8 integration planned |
+| Session max cap enforcement | 🔧 In progress | CLI flag parsed; enforcement logic in progress |
+| Per-tab DOM isolation | 🔧 In progress | Tab metadata tracked; DOM swap on switch in progress |
+
+---
+
+## Architecture
+
+Phantom is an 8-crate Rust workspace organized in 5 layers plus one cross-cutting concern.
+
+```
+Layer 5 — MCP Server        phantom-mcp          Axum + Tokio, JSON-RPC 2.0, auth, metrics
+Layer 4 — Session Broker    phantom-session       Isolate pool, circuit breaker, priority scheduler
+           Storage           phantom-storage       SQLite IndexedDB, sled KV, zstd snapshots
+Layer 3 — Serializer        phantom-serializer    CCT encoder, 8-stage pipeline, buffer pooling
+Layer 2 — Core Engine       phantom-core          html5ever, indextree arena DOM, taffy layout, CSS
+           JS Engine         phantom-js            QuickJS runtime, DOM bindings, browser shims
+Layer 1 — Network           phantom-net           rquest + BoringSSL, Chrome130 impersonation
+Cross    — Anti-Detection   phantom-anti-detect   Persona pool, JS fingerprint shims, canvas noise
+```
+
+### Design decisions
+
+**No rendering pipeline.** Ever. No GPU, no pixels, no skia, no wgpu. Phantom will never render a frame. Agents do not have eyes and every byte spent on rendering is waste.
+
+**CCT over JSON.** The CCT (Compact Context Text) format encodes a full DOM node in a single pipe-delimited line. ~20 tokens per node versus ~121 for JSON. This is not a rounding choice — it is the central design constraint that everything else is built around.
+
+**rquest over reqwest.** The `rquest` crate provides BoringSSL bindings and a `Chrome130` impersonation profile. This produces TLS handshakes that are indistinguishable from a real Chrome 130 browser at the JA4 fingerprint level.
+
+**One JS isolate per task.** Every session gets a fresh QuickJS runtime. When the task ends, the entire isolate is dropped. No state leaks between sessions, no memory accumulates.
+
+**Two-tier JS engine.** QuickJS handles the majority of pages — static HTML, forms, simple scripts. V8 handles SPAs. The V8 tier is currently implemented as a QuickJS delegation while `rusty_v8` bindings are stabilized.
+
+---
+
+## CCT Format
+
+CCT is Phantom's native scene graph format. Each visible DOM node becomes one pipe-delimited line:
+
+```
+id | tag | role | x,y,w,h | flags | text | aria | rel | parent | depth
+```
+
+Real output from navigating `example.com`:
+
+```
+n_0|div|main|0,0,1280,720|b,v,1.0,a|Main|-|-|root|0
+n_1|lnk|lnk|356,288,292,18|b,v,1.0,a|More information...|More information...|c|n_0|1
+```
+
+| Field | Description |
+| --- | --- |
+| `id` | Stable node identifier within session |
+| `tag` | Abbreviated HTML tag (`div`, `lnk`, `btn`, `inp` …) |
+| `role` | ARIA role |
+| `x,y,w,h` | Bounding box in pixels |
+| `flags` | Display, visibility, opacity, pointer-events |
+| `text` | Inner text content, truncated at 64 characters |
+| `aria` | Accessible label; `-` if absent |
+| `rel` | Tree relationship hint |
+| `parent` | Parent node ID |
+| `depth` | Tree depth from document root |
+
+The 6x token reduction over JSON is not an estimate — it is the result of a design that encodes only the 9 fields an agent actually needs to navigate a page, and nothing else.
 
 ---
 
