@@ -18,7 +18,10 @@ impl NetworkClient {
             .build()
             .map_err(|e| NetworkError::Fallback(e.to_string()))?;
 
-        Ok(Self { rquest_client, fallback_client })
+        Ok(Self {
+            rquest_client,
+            fallback_client,
+        })
     }
 
     #[tracing::instrument(skip(self))]
