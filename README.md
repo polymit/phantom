@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="assets/polymit_logo.png" alt="Polymit" width="120" />
+  <img src="assets/polymit_logo.png" alt="Polymit" width="72" style="border-radius: 8px;" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://www.rust-lang.org/logos/rust-logo-blk.svg" alt="Rust" width="52" />
 </p>
 
 <h1 align="center">Phantom Engine</h1>
@@ -14,10 +16,6 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License" /></a>
   <a href="https://github.com/polymit/phantom/releases"><img src="https://img.shields.io/badge/version-0.2.0-green?style=flat-square" alt="Version" /></a>
   <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/built%20with-Rust-CE412B?style=flat-square&logo=rust&logoColor=white" alt="Built with Rust" /></a>
-</p>
-
-<p align="center">
-  <img src="https://www.rust-lang.org/logos/rust-logo-blk.svg" alt="Rust" width="48" />
 </p>
 
 ---
@@ -505,6 +503,5 @@ Apache License 2.0 — see [LICENSE](LICENSE).
 ---
 
 <p align="center">
-  <img src="assets/polymit_logo.png" alt="Polymit" width="80" /><br/><br/>
   Phantom Engine is a product of <a href="https://github.com/polymit">Polymit</a>
 </p>
