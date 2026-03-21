@@ -1,22 +1,12 @@
-<p align="center">
-  <img src="assets/polymit_logo.png" alt="Polymit" width="72" style="border-radius: 8px;" />
-  &nbsp;&nbsp;&nbsp;
-  <img src="https://www.rust-lang.org/logos/rust-logo-blk.svg" alt="Rust" width="52" />
-</p>
+# Phantom Engine
 
-<h1 align="center">Phantom Engine</h1>
+> Purpose-built browser engine for AI agents — zero rendering, full MCP protocol, 1000+ concurrent sessions.
 
-<p align="center">
-  <em>Purpose-built browser engine for AI agents — zero rendering, full MCP protocol, 1000+ concurrent sessions.</em>
-</p>
-
-<p align="center">
-  <a href="https://hub.docker.com/r/polymit/phantom"><img src="https://img.shields.io/docker/pulls/polymit/phantom?style=flat-square" alt="Docker Pulls" /></a>
-  <a href="https://hub.docker.com/r/polymit/phantom"><img src="https://img.shields.io/docker/image-size/polymit/phantom/latest?style=flat-square" alt="Docker Image Size" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License" /></a>
-  <a href="https://github.com/polymit/phantom/releases"><img src="https://img.shields.io/badge/version-0.2.0-green?style=flat-square" alt="Version" /></a>
-  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/built%20with-Rust-CE412B?style=flat-square&logo=rust&logoColor=white" alt="Built with Rust" /></a>
-</p>
+[![Docker Hub](https://img.shields.io/docker/pulls/polymit/phantom?style=flat-square)](https://hub.docker.com/r/polymit/phantom)
+[![Docker Image Size](https://img.shields.io/docker/image-size/polymit/phantom/latest?style=flat-square)](https://hub.docker.com/r/polymit/phantom)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.2.0-green?style=flat-square)](https://github.com/polymit/phantom/releases)
+[![Built with Rust](https://img.shields.io/badge/built%20with-Rust-CE412B?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 
 ---
 
