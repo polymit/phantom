@@ -139,6 +139,7 @@ pub struct McpSession {
     pub created_at: Instant,
     /// Currently active URL.
     pub active_url: Option<String>,
+    pub history: Vec<String>,
     /// Open tabs in this session.
     pub tabs: HashMap<String, TabState>,
     /// The ID of the currently active tab.
@@ -167,6 +168,7 @@ impl Default for McpSession {
             id: Uuid::new_v4(),
             created_at: Instant::now(),
             active_url: None,
+            history: Vec::new(),
             tabs,
             active_tab: initial_tab,
             dom: None,

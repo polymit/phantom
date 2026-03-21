@@ -219,6 +219,9 @@ Cross    — Anti-Detection  phantom-anti-detect  Persona pool, JS fingerprint s
 - **No rendering pipeline** — ever. No wgpu, no skia, no pixels. Agents do not have eyeballs.
 - **CCT output** — ~20 tokens/node. 6x more efficient than JSON.
 - **rquest over reqwest** — BoringSSL for JA4 TLS fingerprint spoofing.
+- **Persistence-first navigation** — Full history tracking with `browser_go_back` and `browser_refresh`.
+- **Realistic interaction** — `browser_click`, `browser_type`, and `browser_press_key` simulate full event sequences (keydown, mousedown, etc.) with configurable delays to bypass bot detection.
+- **Native QuickJS evaluation** — `browser_evaluate` runs JavaScript directly in a native isolate for sub-ms execution.
 - **Per-task memory model** — each session's DOM and JS isolate are dropped completely on destroy.
 - **Two-tier JS** — QuickJS for 80% of pages (forms, static), V8 for SPAs (React/Vue/Angular).
 

@@ -5,10 +5,11 @@ use phantom_js::processor::JsPageProcessor;
 use phantom_serializer;
 use serde_json::{json, Value};
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::timeout;
 
-use crate::errors::{BrowserError, JsError};
+use phantom_js::quickjs::runtime::QuickJsRuntime;
+use phantom_js::quickjs::runtime::JsError as QuickJsError;
+
+use crate::errors::{BrowserError, JsError, InternalError};
 use crate::server::McpSession;
 
 pub async fn browser_get_scene_graph(
@@ -68,25 +69,33 @@ pub async fn browser_evaluate(
     _session: &mut McpSession,
     _engine: &Arc<JsPageProcessor>,
 ) -> Result<Value, BrowserError> {
-    let _script = arguments
+    let script = arguments
         .get("script")
         .and_then(|v| v.as_str())
         .ok_or_else(|| {
-            BrowserError::Internal(crate::errors::InternalError::ChannelSend(
+            BrowserError::Internal(InternalError::ChannelSend(
                 "Missing 'script' argument".to_string(),
             ))
+        })?
+        .to_string();
+
+    let runtime = QuickJsRuntime::new().map_err(|e| {
+        BrowserError::JavaScript(JsError::Evaluation(e.to_string()))
+    })?;
+
+    let result = runtime
+        .execute(&script, "browser_evaluate")
+        .map_err(|e| match e {
+            QuickJsError::Timeout { timeout_ms } => {
+                BrowserError::JavaScript(JsError::Timeout { timeout_ms })
+            }
+            QuickJsError::UncaughtException { message, stack } => {
+                BrowserError::JavaScript(JsError::UncaughtException { message, stack })
+            }
+            other => BrowserError::JavaScript(JsError::Evaluation(other.to_string())),
         })?;
 
-    // Enforce 10s hard timeout
-    let fut = async {
-        // QuickJS evaluation placeholder
-        Ok::<Value, BrowserError>(json!({ "result": "mock_eval_result" }))
-    };
+    runtime.dispose();
 
-    match timeout(Duration::from_secs(10), fut).await {
-        Ok(res) => res,
-        Err(_) => Err(BrowserError::JavaScript(JsError::Timeout {
-            timeout_ms: 10000,
-        })),
-    }
+    Ok(json!({ "result": result }))
 }
